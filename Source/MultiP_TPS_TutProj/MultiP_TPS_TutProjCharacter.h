@@ -5,11 +5,13 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
+#include "Interfaces/OnlineSessionInterface.h"
 #include "MultiP_TPS_TutProjCharacter.generated.h"
 
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
+class FNamedOnlineSession;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -98,10 +100,21 @@ public:
 	// Pointer to the online session interface
 	// A wrapper to the smart pointer, it's thread safe and will 
 	// hold our session interface for us
-	//IOnlineSessionPtr OnlineSessionInterface; this is the same as the line below, 
+	IOnlineSessionPtr OnlineSessionInterface; 
+	//this is the same as the line below, 
 	// but the line below allows us to declare the pointer without including the header in this file
-	TSharedPtr<class IOnlineSession, ESPMode::ThreadSafe> OnlineSessionInterface;
+	//TSharedPtr<class IOnlineSession, ESPMode::ThreadSafe> OnlineSessionInterface;
 
+protected:
+
+	UFUNCTION(BlueprintCallable)
+	void CreateGameSession(); 
+
+	void OnCreateSessionCompleteD(FName SessionName, bool bWasSuccessful);
+
+private:
+
+	FOnCreateSessionCompleteDelegate OnCreateSessionCompleteDelegate;
 
 };
 

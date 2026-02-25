@@ -11,11 +11,11 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "Kismet/GameplayStatics.h"
-#include "Interfaces/OnlineSessionInterface.h"
 #include "OnlineSubsystem.h"
 #include "MultiP_TPS_TutProj.h"
 
-AMultiP_TPS_TutProjCharacter::AMultiP_TPS_TutProjCharacter()
+AMultiP_TPS_TutProjCharacter::AMultiP_TPS_TutProjCharacter():
+	OnCreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnCreateSessionCompleteD))
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -150,5 +150,25 @@ void AMultiP_TPS_TutProjCharacter::DoJumpEnd()
 {
 	// signal the character to stop jumping
 	StopJumping();
+}
+
+void AMultiP_TPS_TutProjCharacter::CreateGameSession()
+{
+	// Called when pressing the 1 Key
+	if (!OnlineSessionInterface.IsValid())
+		return;
+
+	// local variable only visible in this function
+	FNamedOnlineSession* ExistingSession = OnlineSessionInterface->GetNamedSession(NAME_GameSession);
+	if(ExistingSession != nullptr)
+	{
+
+	}
+
+}
+
+void AMultiP_TPS_TutProjCharacter::OnCreateSessionCompleteD(FName SessionName, bool bWasSuccessful)
+{
+
 }
 
