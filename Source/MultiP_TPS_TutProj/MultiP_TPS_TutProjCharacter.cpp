@@ -11,11 +11,14 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "Kismet/GameplayStatics.h"
+#include "OnlineSessionSettings.h"
 #include "OnlineSubsystem.h"
+#include "Online/OnlineSessionNames.h"
 #include "MultiP_TPS_TutProj.h"
 
 AMultiP_TPS_TutProjCharacter::AMultiP_TPS_TutProjCharacter():
-	OnCreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnCreateSessionCompleteD))
+	OnCreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnCreateSessionCompleteD)),
+	OnFindSessionsCompleteDelegate(FOnFindSessionsCompleteDelegate::CreateUObject(this, &ThisClass::OnFindSessionsCompleteD))
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -63,7 +66,7 @@ AMultiP_TPS_TutProjCharacter::AMultiP_TPS_TutProjCharacter():
 				-1, 
 				15.f, 
 				FColor::Green, 
-				FString::Printf(TEXT("Online Subsystem: %s"), *OnlineSubsystem->GetSubsystemName().ToString())
+				FString::Printf(TEXT("Found Online Subsystem: %s"), *OnlineSubsystem->GetSubsystemName().ToString())
 			);
 		}
 	}
@@ -158,17 +161,89 @@ void AMultiP_TPS_TutProjCharacter::CreateGameSession()
 	if (!OnlineSessionInterface.IsValid())
 		return;
 
-	// local variable only visible in this function
 	FNamedOnlineSession* ExistingSession = OnlineSessionInterface->GetNamedSession(NAME_GameSession);
 	if(ExistingSession != nullptr)
 	{
-
+		OnlineSessionInterface->DestroySession(NAME_GameSession);
 	}
+
+	OnlineSessionInterface->AddOnCreateSessionCompleteDelegate_Handle(OnCreateSessionCompleteDelegate);
+
+	TSharedPtr<FOnlineSessionSettings> SessionSettings = MakeShareable(new FOnlineSessionSettings());
+	SessionSettings->bIsLANMatch = false;
+	SessionSettings->NumPublicConnections = 4;
+	SessionSettings->bAllowJoinInProgress = true;
+	SessionSettings->bAllowJoinViaPresence = true; // joins depending on region of the world
+	SessionSettings->bShouldAdvertise = true;
+	SessionSettings->bUsesPresence = true; // for using the region of the world to join sessions
+	SessionSettings->bUseLobbiesIfAvailable = true; // for using lobbies on platforms that support them (currently Steam and Epic Online Services)
+	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+	OnlineSessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *SessionSettings);
+
+}
+
+void AMultiP_TPS_TutProjCharacter::JoinGameSession()
+{
+	// Find game Sessions
+	if(!OnlineSessionInterface.IsValid())
+		return;
+
+	OnlineSessionInterface->AddOnFindSessionsCompleteDelegate_Handle(OnFindSessionsCompleteDelegate);
+
+	SessionSearch = MakeShareable(new FOnlineSessionSearch());
+	SessionSearch->MaxSearchResults = 10000;
+	SessionSearch->bIsLanQuery = false;
+	SessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals); // for using the region of the world to find sessions
+
+	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+	OnlineSessionInterface->FindSessions(*LocalPlayer->GetPreferredUniqueNetId(), SessionSearch.ToSharedRef());
 
 }
 
 void AMultiP_TPS_TutProjCharacter::OnCreateSessionCompleteD(FName SessionName, bool bWasSuccessful)
 {
+	if (bWasSuccessful)
+	{
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Blue,
+				FString::Printf(TEXT("Created session: %s"), *SessionName.ToString())
+			);
+		}
+	}
+	else
+	{
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Red,
+				FString::Printf(TEXT("Failed to create session!! %s"), *SessionName.ToString())
+			);
+		}
+	}
+}
 
+void AMultiP_TPS_TutProjCharacter::OnFindSessionsCompleteD(bool bWasSuccessful)
+{
+	for(auto Result : SessionSearch->SearchResults)
+	{
+		FString Id = Result.GetSessionIdStr();
+		FString User = Result.Session.OwningUserName;
+
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Yellow,
+				FString::Printf(TEXT("Session ID Found: %s, Username: %s"), *Id, *User)
+			);
+		}
+	}
 }
 
