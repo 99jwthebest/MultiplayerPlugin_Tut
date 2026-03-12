@@ -113,12 +113,14 @@ protected:
 	void JoinGameSession();
 	void OnCreateSessionCompleteD(FName SessionName, bool bWasSuccessful);
 	void OnFindSessionsCompleteD(bool bWasSuccessful);
+	void OnJoinSessionCompleteD(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
 
 private:
 
 	FOnCreateSessionCompleteDelegate OnCreateSessionCompleteDelegate;
 	FOnFindSessionsCompleteDelegate OnFindSessionsCompleteDelegate;
 	TSharedPtr<FOnlineSessionSearch> SessionSearch;
+	FOnJoinSessionCompleteDelegate OnJoinSessionCompleteDelegate;
 
 };
 
