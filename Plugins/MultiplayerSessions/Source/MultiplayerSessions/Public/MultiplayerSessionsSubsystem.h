@@ -7,9 +7,16 @@
 #include "Interfaces/OnlineSessionInterface.h"
 #include "MultiplayerSessionsSubsystem.generated.h"
 
-/**
- * 
- */
+//
+// Declaring our own custom delegates for the Menu class to bind callbacks to. 
+// These will then be called when the MultiplayerSessionsSubsystem delegates are triggered by the online subsystem.
+//
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMultiplayerOnCreateSessionComplete, bool, bWasSuccessful);
+// Multicast delegate means multiple functions can be bound to the same delegate, and 
+// all will be called when the delegate is broadcasted.
+// Dynamic means we can bind functions to this delegate in Blueprints, and 
+// also use it in Blueprints as an event dispatcher.
+
 UCLASS()
 class MULTIPLAYERSESSIONS_API UMultiplayerSessionsSubsystem : public UGameInstanceSubsystem
 {
@@ -25,6 +32,11 @@ public:
 	void JoinSession(const FOnlineSessionSearchResult& SessionResult);
 	void DestroySession();
 	void StartSession();
+
+	//
+	// Our own custom delegates for the Menu class to bind callbacks to.
+	//
+	FMultiplayerOnCreateSessionComplete MultiplayerOnCreateSessionComplete;
 
 protected:
 
