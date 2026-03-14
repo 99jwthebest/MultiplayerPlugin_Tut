@@ -16,11 +16,12 @@ class MULTIPLAYERSESSIONS_API UMenu : public UUserWidget
 	
 public:
 	UFUNCTION(BlueprintCallable)
-	void MenuSetup();
+	void MenuSetup(int32 NumberOfPublicConnections = 4, FString TypeOfMatch = FString(TEXT("FreeForAll")));
 
 protected:
 
 	virtual	bool Initialize() override;
+	virtual void NativeDestruct() override;
 
 private:
 
@@ -34,9 +35,14 @@ private:
 	UFUNCTION()
 	void JoinButtonClicked();
 
+	void MenuTearDown();
+
 	// The subsystem designed to handle all online session functionality. 
 	// This is the class that Menu will call to create, find, join, etc sessions. 
 	// The subsystem will then handle the delegate calls for each of these functionalities and forward them to the Menu class.
 	class UMultiplayerSessionsSubsystem* MultiplayerSessionsSubsystem;
+
+	int32 NumPublicConnections{ 4 };
+	FString MatchType{ TEXT("FreeForAll") };
 
 };
