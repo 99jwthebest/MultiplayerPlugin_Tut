@@ -61,7 +61,7 @@ AMultiP_TPS_TutProjCharacter::AMultiP_TPS_TutProjCharacter():
 	{
 		OnlineSessionInterface = OnlineSubsystem->GetSessionInterface(); //access the session interface
 		
-		if (GEngine)
+		/*if (GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(
 				-1, 
@@ -69,7 +69,7 @@ AMultiP_TPS_TutProjCharacter::AMultiP_TPS_TutProjCharacter():
 				FColor::Green, 
 				FString::Printf(TEXT("Found Online Subsystem: %s"), *OnlineSubsystem->GetSubsystemName().ToString())
 			);
-		}
+		}*/
 	}
 
 }

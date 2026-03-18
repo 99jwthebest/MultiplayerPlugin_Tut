@@ -20,7 +20,8 @@ public class MultiP_TPS_TutProj : ModuleRules
 			"UMG",
 			"Slate",
             "OnlineSubsystemSteam",
-			"OnlineSubsystem"
+			"OnlineSubsystem",
+			"MultiplayerSessions",
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

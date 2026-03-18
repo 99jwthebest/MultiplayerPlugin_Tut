@@ -45,6 +45,7 @@ void UMultiplayerSessionsSubsystem::CreateSession(int32 NumPublicConnections, FS
 	LastSessionSettings->bUsesPresence = true; // for using the region of the world to join sessions
 	LastSessionSettings->bUseLobbiesIfAvailable = true; // for using lobbies on platforms that support them (currently Steam and Epic Online Services)
 	LastSessionSettings->Set(FName("MatchType"), MatchType, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
+	LastSessionSettings->BuildUniqueId = 1; // to prevent different builds from seeing each other when searching for sessions
 
 	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 	if (!SessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *LastSessionSettings))
@@ -106,7 +107,36 @@ void UMultiplayerSessionsSubsystem::DestroySession()
 
 void UMultiplayerSessionsSubsystem::StartSession()
 {
+	if (!SessionInterface.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("MSS::StartSession - SessionInterface invalid"));
+		MultiplayerOnStartSessionComplete.Broadcast(false);
+		return;
+	}
 
+	// build local strings to avoid temporaries in the UE_LOG varargs
+	FString SubsystemName = IOnlineSubsystem::Get() ? IOnlineSubsystem::Get()->GetSubsystemName().ToString() : FString(TEXT("UnknownSubsystem"));
+	FName SessionFName = NAME_GameSession; // construct a FName from the engine constant
+	FString SessionNameStr = SessionFName.ToString();
+
+	UE_LOG(LogTemp, Log, TEXT("MSS::StartSession - Subsystem: %s, requesting StartSession for %s"),
+		*SubsystemName,
+		*SessionNameStr);
+	// Add the start-session delegate handle
+	StartSessionCompleteDelegateHandle = SessionInterface->AddOnStartSessionCompleteDelegate_Handle(StartSessionCompleteDelegate);
+
+	// Request the online service to mark the session as started.
+	bool bRequestStarted = SessionInterface->StartSession(NAME_GameSession);
+	if (!bRequestStarted)
+	{
+		UE_LOG(LogTemp, Error, TEXT("MSS::StartSession - SessionInterface->StartSession returned false immediately"));
+		SessionInterface->ClearOnStartSessionCompleteDelegate_Handle(StartSessionCompleteDelegateHandle);
+		MultiplayerOnStartSessionComplete.Broadcast(false);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("MSS::StartSession - StartSession request issued, waiting for completion delegate"));
+	}
 }
 
 void UMultiplayerSessionsSubsystem::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
@@ -152,5 +182,14 @@ void UMultiplayerSessionsSubsystem::OnDestroySessionComplete(FName SessionName, 
 
 void UMultiplayerSessionsSubsystem::OnStartSessionComplete(FName SessionName, bool bWasSuccessful)
 {
+	UE_LOG(LogTemp, Log, TEXT("MSS::OnStartSessionComplete - SessionName=%s bWasSuccessful=%s"),
+		*SessionName.ToString(),
+		bWasSuccessful ? TEXT("true") : TEXT("false"));
 
+	if (SessionInterface)
+	{
+		SessionInterface->ClearOnStartSessionCompleteDelegate_Handle(StartSessionCompleteDelegateHandle);
+	}
+
+	MultiplayerOnStartSessionComplete.Broadcast(bWasSuccessful);
 }
